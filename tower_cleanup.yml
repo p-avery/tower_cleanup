@@ -1,0 +1,127 @@
+---
+- name: cleanup towers
+  hosts: localhost
+  gather_facts: no
+  vars_prompt:
+    - name: rhpds_instance
+      prompt: What is your RHPDS instance Number i.e '9836'
+      private: no
+
+    - name: student_count
+      prompt: How many Students do you have 1-50?
+      private: no
+
+    - name: student_password
+      prompt: What is the workshop student password
+      private: yes
+
+
+  vars:
+    student_username: admin
+
+  tasks:
+  - name: create student inventory
+    set_fact: 
+      towers: "{{ item }}"
+    with_sequence: start=1 end="{{ student_count }}" format=https://student%01d.{{rhpds_instance}}.open.redhat.com
+    register: student_result
+
+  - name: make a list
+    set_fact: student_towers="{{ student_result.results | map(attribute='ansible_facts.towers') | list }}"
+
+  - name: Delete job templates from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/job_templates/11/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items: 
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+  - name: Delete job templates from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/job_templates/12/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items:
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+
+  - name: Delete credentials from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/credentials/2/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items:
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+  - name: Delete credentials from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/credentials/3/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items:
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+  - name: Delete projects from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/projects/9/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items:
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+  - name: Delete projects from tower via the api
+    uri:
+      url: "{{ item }}/api/v2/projects/10/"
+      method: DELETE
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      status_code: 204
+    with_items:
+      - "{{ student_towers }}"
+    ignore_errors: true
+
+
+  - name: Remove the inventory variables
+    uri:
+      url: "{{ item }}/api/v2/inventories/2/"
+      method: PATCH
+      user: "{{ student_username }}"
+      password: "{{ student_password }}"
+      force_basic_auth: true
+      body_format: json
+      body: >
+        {
+          "name": "Workshop Inventory",
+          "description": "",
+          "organization": 1,
+          "kind": "",
+          "host_filter": null,
+          "variables": "",
+          "insights_credential": null
+        }
+    ignore_errors: true
+    with_items:
+      - "{{ student_towers }}"
+
